@@ -19,9 +19,13 @@ requested.
 Milpa Auth is authorization infrastructure, so its own posture is part of your
 attack surface. Two invariants are enforced by tests and must never regress:
 
-- **`Credential` never leaks its value.** The raw token lives inside a closure, out
-  of reach of `var_export()`, `print_r()`, `var_dump()`, `json_encode()`, and every
-  exception message or stack trace. Only an explicit `value()` call returns it.
+- **`Credential` redacts and refuses the common leak paths.** The raw token is a
+  `private readonly` property marked `#[\SensitiveParameter]`; `print_r()`, `var_dump()`,
+  `json_encode()`, and every exception message or stack trace are sealed, and
+  `serialize()`/`clone` refuse outright (throw). Two casual-dump surfaces — `var_export()`
+  and the `(array)` cast — read raw private properties directly; they are documented,
+  test-pinned residuals, forbidden by contract rather than silently marked "safe" (see
+  ADR 0001). Only an explicit `value()` call returns the secret.
 - **Fail-closed by construction.** An unknown scope, a null actor, or an unverified
   credential denies — never inherits a laxer policy. `hasScope()` matches exactly;
   the only wildcard is the explicit, documented `'*'`.

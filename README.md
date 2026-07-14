@@ -9,7 +9,7 @@
 
 # Milpa Auth
 
-> Runtime-native **identity vocabulary** for Milpa: the typed `Actor` / `AuthContext` / `AuthState` primitives, an opaque `Credential` that never leaks its value, and the `CredentialVerifier`, `AuthContextFactory` and `SessionStore` contracts. The trusted producer of the context policies need — fail-closed by construction, zero framework, zero ORM.
+> Runtime-native **identity vocabulary** for Milpa: the typed `Actor` / `AuthContext` / `AuthState` primitives, an opaque `Credential` with explicit redaction/refusal semantics, and the `CredentialVerifier`, `AuthContextFactory` and `SessionStore` contracts. The trusted producer of the context policies need — fail-closed by construction, zero framework, zero ORM.
 
 [![CI](https://github.com/getmilpa/auth/actions/workflows/ci.yml/badge.svg)](https://github.com/getmilpa/auth/actions/workflows/ci.yml)
 [![Packagist](https://img.shields.io/packagist/v/milpa/auth.svg)](https://packagist.org/packages/milpa/auth)
@@ -87,7 +87,7 @@ $scoped->hasScope('posts:read');       // false — 'posts:*' is NOT a wildcard,
 There is no magic wildcard. If a caller can do something, it is because a scope says so — exactly,
 or via the one `'*'` you granted on purpose.
 
-### A `Credential` never leaks its value
+### A `Credential` redacts and refuses the common leak paths
 
 A `Credential` is an opaque wrapper around a raw secret — the one thing that, printed to a log or an
 error, hands an attacker the keys. It uses the idiomatic modern-PHP shape for a secret-bearing value

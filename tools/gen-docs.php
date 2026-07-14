@@ -54,7 +54,7 @@ $config = new Milpa\Docs\SiteConfig(
     pagesUrl: 'https://getmilpa.github.io/auth/',
     heroParagraph: 'Runtime-native <strong>identity vocabulary</strong> for Milpa: the typed '
         . '<strong>Actor</strong>, <strong>AuthContext</strong> and <strong>AuthState</strong> '
-        . 'primitives, an opaque <strong>Credential</strong> that never leaks its value, and the '
+        . 'primitives, an opaque <strong>Credential</strong> with explicit redaction/refusal semantics, and the '
         . 'CredentialVerifier, AuthContextFactory and SessionStore contracts. The trusted producer '
         . 'of the context policies need — fail-closed by construction, zero framework, zero ORM.',
     utmContent: 'auth',
