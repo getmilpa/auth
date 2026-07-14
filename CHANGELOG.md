@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/getmilpa/auth/compare/v0.2.0...v0.2.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* use last-release-sha (never ignored) to anchor release-please ([2651388](https://github.com/getmilpa/auth/commit/2651388d2be8be89b4501265902e372f80679f5f))
+
 ## [0.2.0](https://github.com/getmilpa/auth/compare/v0.1.0...v0.2.0) (2026-07-14)
 
 
