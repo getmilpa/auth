@@ -29,12 +29,15 @@ final readonly class Actor
      * @param list<string>        $scopes the exact permission strings this identity holds; the only
      *                                    wildcard is the explicit `'*'`, which grants every scope
      * @param array<string,mixed> $claims everything else the verifier proved (email, name, tenant, …)
+     * @param list<string>        $roles  the role ids the verifier proved; a resolver expands them to
+     *                                    permissions via a catalog. Empty for a flat-scope-only actor.
      */
     public function __construct(
         public string $id,
         public ActorType $type,
         public array $scopes = [],
         public array $claims = [],
+        public array $roles = [],
     ) {
     }
 
@@ -65,5 +68,14 @@ final readonly class Actor
         }
 
         return false;
+    }
+
+    /**
+     * Whether this actor holds the role `$roleId`. Exact match; roles carry no wildcard (the `'*'`
+     * escape hatch lives on scopes). A resolver turns these ids into permissions.
+     */
+    public function hasRole(string $roleId): bool
+    {
+        return in_array($roleId, $this->roles, true);
     }
 }

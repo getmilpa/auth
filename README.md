@@ -118,6 +118,81 @@ plain, readable idiom instead, and the rule is simply: never `var_export()` or `
 Credential. The high-probability logging paths (`print_r`, `var_dump`, `json_encode`, exception
 messages and traces) are all sealed, and `serialize()` — the highest-risk persistence path — throws.
 
+## Permissions — the product matrix
+
+Scopes answer "what strings does this identity hold?" Permissions answer the question the product
+actually asks: "may this actor do this, on this — and *because of what*?" The grammar is one
+canonical key:
+
+```
+{namespace}.{resource}:{action}
+```
+
+`namespace` is optional — `crm.contact:update` and `posts:read` are both valid. `Permission::parse()`
+builds one from that string (fail-closed: a malformed key throws, `MILPA_PERMISSION_MALFORMED`);
+`Permission::of($resource, $action, $namespace)` builds one straight from its segments; `Permission::key()`
+returns the canonical string back.
+
+Three layers, three separate jobs:
+
+1. **Actor — the wire.** `$actor->roles` (role ids) and `$actor->scopes` (flat strings) are exactly
+   what a `CredentialVerifier` hands you. An `Actor` knows nothing about a permission catalog.
+2. **Resolver — the semantics.** A `PermissionResolver` (the reference `CatalogPermissionResolver`)
+   expands those role ids against a `PermissionCatalog` and lifts flat scopes into `Permission`s,
+   producing a `PermissionSet`. Every grant it holds carries a `PermissionSource` — the role id or
+   scope string that produced it.
+3. **AuthContext — the decision.** `AuthContext::can($resource, $action, $namespace = null)` checks
+   the attached `PermissionSet` when one was resolved, and falls back to the flat-scope check
+   otherwise — fail-closed either way, with no actor answering `false`.
+
+That fallback is exact, and total-backward-compatible with scopes: for an actor with no roles and no
+resolved `PermissionSet`, `$ctx->can('posts', 'read') ≡ $ctx->hasScope('posts:read')` — permissions
+and scopes are the same check, letter for letter.
+
+```php
+$catalog  = ArrayPermissionCatalog::fromArray([
+    'roles' => ['editor' => ['permissions' => ['crm.contact:update']]],
+]);
+$resolver = new CatalogPermissionResolver($catalog);
+$actor    = new Actor('u1', ActorType::User, roles: ['editor']);
+$ctx      = AuthContext::authenticated($actor)->withPermissions($resolver->resolve($actor, PermissionContext::none()));
+
+$ctx->can('contact', 'update', 'crm');   // true — via role "editor"
+$ctx->permissions()?->sourcesOf(Permission::parse('crm.contact:update'))[0]->id;   // "editor"
+```
+
+Gate a route the same way `RequireScopeMiddleware` gates one — on a `Permission` instead of a raw
+scope string:
+
+```php
+new RequirePermissionMiddleware(
+    required: Permission::of('contact', 'update', 'crm'),
+    resolver: $resolver,   // resolves once per request when no PermissionSet is attached yet
+);
+```
+
+A request that authenticated but does not hold the required permission gets a `PermissionDeniedException`
+(403, `MILPA_PERMISSION_DENIED`) naming the key it was missing — never a silent 404, never a bare
+boolean with no explanation attached.
+
+**Provenance, not just a verdict.** `PermissionSet::sourcesOf(Permission)` returns every
+`PermissionSource` that granted a permission — which role, which flat scope, in that order it was
+found — so an admin screen, or an incident review, can answer "why does this actor have this?"
+instead of only "do they?". `PermissionReport::of($actor, $context, $resolver)` snapshots that whole
+picture — actor, context, roles held, resolved set — as one Admin-readiness read model.
+
+**Three non-goals, stated on purpose:**
+- **No ABAC engine.** 2a ships structured RBAC-lite — roles and flat scopes, resolved and explained.
+  Attribute-based rules have a seam (`Policy`, see [ADR 0002](docs/adr/0002-rbac-lite-not-abac.md)),
+  but zero implementations ship in this package.
+- **`'*'` stays the only wildcard.** `posts:*` is not a prefix match anywhere in this layer — it is a
+  literal, unmatchable string. Grant the bare `'*'` only to an actor that should bypass every check.
+- **Tenant membership is product policy — the default resolver is tenant-blind.**
+  `CatalogPermissionResolver` threads `PermissionContext` through untouched; it never reads
+  `$tenantId`. A host that needs "this role only inside this tenant" supplies its own
+  `PermissionResolver`, or a `Policy`, rather than the leaf guessing at tenant conventions it cannot
+  know.
+
 ## Auth defines *what* it needs; storage decides *how*
 
 The producer's job is to turn a credential into an `AuthContext`. It should never own a database.
@@ -159,6 +234,18 @@ $store = new InMemorySessionStore(fn () => new DateTimeImmutable('2026-01-01 00:
 $store->write($record);
 $store->read($record->id);   // the record — or null if it is expired/revoked as of the clock
 ```
+
+## Passkeys
+
+WebAuthn/passkey support does not live in this package. `CredentialType::Passkey` exists here only as
+a **vocabulary marker** — for logs, UI, and reports — never as a per-request credential a
+`CredentialVerifier` checks: a passkey ceremony is stateful and two-round-trip, the opposite of the
+single-shot shape `Credential`/`CredentialVerifier` are built for. The ceremony itself — the relying
+party, the challenge lifecycle, the credential store, and a `lbuchs/webauthn` adapter — ships in
+[`milpa/auth-webauthn`](https://github.com/getmilpa/auth-webauthn), one tier above this package. A
+verified assertion there produces proof, never a session directly; the host mints a `SessionRecord`
+from that proof, and this package's `SessionStore`/`StartSession` take it from there exactly as they
+would for any other login path.
 
 ## Requirements
 

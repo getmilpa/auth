@@ -57,4 +57,20 @@ final class AuthMiddlewareNotInstalledException extends AuthException
             'MILPA_AUTH_MIDDLEWARE_NOT_INSTALLED',
         );
     }
+
+    /**
+     * The 500 for a *permission*-typed operation whose host wired no auth chain to produce an
+     * AuthContext. Rod's binding distinction: a host misconfiguration, never a 401/403.
+     */
+    public static function forPermissionedOperation(string $operation, string $permission): self
+    {
+        return new self(
+            '[MILPA_AUTH_MIDDLEWARE_NOT_INSTALLED] Operation "' . $operation . '" requires permission "'
+            . $permission . '" but no auth chain is installed to produce an AuthContext. This is a server '
+            . 'misconfiguration (500), not a request failure: wire a CredentialVerifier or AuthContextFactory. '
+            . self::ACADEMY_LINK,
+            500,
+            'MILPA_AUTH_MIDDLEWARE_NOT_INSTALLED',
+        );
+    }
 }

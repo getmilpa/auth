@@ -107,4 +107,18 @@ final class ActorTest extends TestCase
         $this->assertSame('agent', ActorType::Agent->value);
         $this->assertSame('service', ActorType::Service->value);
     }
+
+    public function testRolesDefaultEmptyAndAppendedForBc(): void
+    {
+        $legacy = new Actor('u1', ActorType::User, ['posts:read'], ['email' => 'a@b.c']);
+        self::assertSame([], $legacy->roles);                    // BC: existing 4-arg call still valid
+        self::assertTrue($legacy->hasScope('posts:read'));       // BC: scopes untouched
+    }
+
+    public function testHasRoleExactMatch(): void
+    {
+        $actor = new Actor('u1', ActorType::User, roles: ['editor', 'viewer']);
+        self::assertTrue($actor->hasRole('editor'));
+        self::assertFalse($actor->hasRole('admin'));
+    }
 }
