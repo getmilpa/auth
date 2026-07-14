@@ -27,13 +27,17 @@ final readonly class AuthContext
      * @param ?Actor              $actor    the verified identity, or `null` when there is none
      *                                      (anonymous or invalid)
      * @param AuthState           $state    how the request authenticated
-     * @param array<string,mixed> $metadata out-of-band detail — e.g. the rejection `reason` on an
-     *                                      invalid context, the source ip, the request id
+     * @param array<string,mixed> $metadata    out-of-band detail — e.g. the rejection `reason` on an
+     *                                         invalid context, the source ip, the request id
+     * @param ?PermissionSet      $permissions the resolved permission set, or `null` when none was
+     *                                         resolved yet (the flat-scope fallback in {@see self::can()}
+     *                                         still works)
      */
     public function __construct(
         public ?Actor $actor,
         public AuthState $state,
         public array $metadata = [],
+        private ?PermissionSet $permissions = null,
     ) {
     }
 
@@ -91,5 +95,35 @@ final readonly class AuthContext
     public function hasAnyScope(array $scopes): bool
     {
         return $this->actor?->hasAnyScope($scopes) ?? false;
+    }
+
+    /**
+     * The resolved {@see PermissionSet} for this request, or null when none was resolved (the flat-scope
+     * fallback in {@see self::can()} still works).
+     */
+    public function permissions(): ?PermissionSet
+    {
+        return $this->permissions;
+    }
+
+    /** A copy of this context carrying $permissions — used by the enforcement layer after it resolves. */
+    public function withPermissions(PermissionSet $permissions): self
+    {
+        return new self($this->actor, $this->state, $this->metadata, $permissions);
+    }
+
+    /**
+     * Whether the request's actor may perform `$action` on `$resource` (optionally within `$namespace`).
+     * Uses the resolved {@see PermissionSet} when present; otherwise falls back to the flat-scope check,
+     * so `can('posts','read') ≡ hasScope('posts:read')` for a flat-scope-only actor. Fail-closed: with
+     * no actor (anonymous/invalid) this is false.
+     */
+    public function can(string $resource, string $action, ?string $namespace = null): bool
+    {
+        if ($this->permissions !== null) {
+            return $this->permissions->can($resource, $action, $namespace);
+        }
+
+        return $this->hasScope(Permission::of($resource, $action, $namespace)->key());
     }
 }

@@ -99,4 +99,40 @@ final class AuthContextTest extends TestCase
         $this->assertSame('authenticated', AuthState::Authenticated->value);
         $this->assertSame('invalid', AuthState::Invalid->value);
     }
+
+    public function testCanFallsBackToFlatScopes(): void
+    {
+        $ctx = AuthContext::authenticated(new Actor('u1', ActorType::User, ['posts:read']));
+        // BC EQUIVALENCE INVARIANT: with no resolved set, can() ≡ hasScope(key)
+        self::assertTrue($ctx->can('posts', 'read'));
+        self::assertSame($ctx->hasScope('posts:read'), $ctx->can('posts', 'read'));
+        self::assertFalse($ctx->can('posts', 'write'));
+        self::assertNull($ctx->permissions());
+    }
+
+    public function testWildcardScopeCanEverything(): void
+    {
+        $ctx = AuthContext::authenticated(new Actor('root', ActorType::Service, ['*']));
+        self::assertTrue($ctx->can('anything', 'goes', 'any'));
+    }
+
+    public function testWithPermissionsAttachesResolvedSet(): void
+    {
+        $ctx = AuthContext::authenticated(new Actor('u1', ActorType::User, roles: ['editor']));
+        $set = new \Milpa\Auth\PermissionSet([
+            new \Milpa\Auth\GrantedPermission(
+                \Milpa\Auth\Permission::parse('crm.contact:update'),
+                new \Milpa\Auth\PermissionSource(\Milpa\Auth\PermissionSourceType::Role, 'editor'),
+            ),
+        ]);
+        $withPerms = $ctx->withPermissions($set);
+        self::assertNull($ctx->permissions());                 // original untouched (readonly)
+        self::assertNotNull($withPerms->permissions());
+        self::assertTrue($withPerms->can('contact', 'update', 'crm'));
+    }
+
+    public function testCanIsFalseWhenAnonymous(): void
+    {
+        self::assertFalse(AuthContext::anonymous()->can('posts', 'read'));
+    }
 }

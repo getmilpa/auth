@@ -15,13 +15,16 @@ declare(strict_types=1);
 namespace Milpa\Auth;
 
 /**
- * How a {@see Credential} arrived — the closed set of transports the framework recognises. A `Bearer`
- * credential is the `Authorization: Bearer …` token; a `Cookie` credential is the session-cookie
- * value. The set is deliberately closed (a vocabulary, not free-form metadata), consistent with
+ * The kind of a {@see Credential}, or the ceremony that produced a session — the closed set the
+ * framework recognises. A `Bearer` credential is the `Authorization: Bearer …` token; a `Cookie`
+ * credential is the session-cookie value; `Passkey` marks a WebAuthn ceremony that mints a session
+ * (a vocabulary marker for logs/UI/reports — NOT a per-request credential, and it never flows through
+ * {@see Contracts\CredentialVerifier}). The set is deliberately closed, consistent with
  * {@see ActorType}: a credential's kind is identity, not a string a caller can invent.
  */
 enum CredentialType: string
 {
     case Bearer = 'bearer';
     case Cookie = 'cookie';
+    case Passkey = 'passkey';
 }
