@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/getmilpa/auth/compare/v0.1.0...v0.2.0) (2026-07-14)
+
+
+### Features
+
+* permissions matrix (RBAC-lite) + passkey credential-type vocabulary ([344a632](https://github.com/getmilpa/auth/commit/344a63274d32fd9789043bde6348dbb7a8504c67))
+
 ## 0.1.0 (2026-07-14)
 
 
