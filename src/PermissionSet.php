@@ -24,9 +24,9 @@ namespace Milpa\Auth;
 final readonly class PermissionSet
 {
     /**
-     * @param list<GrantedPermission> $granted    every permission granted, with its provenance
-     * @param bool                    $grantsAll   true when the actor holds the `'*'` scope (grants all)
-     * @param ?PermissionSource       $allSource   provenance of the `'*'` grant, when $grantsAll
+     * @param list<GrantedPermission> $granted   every permission granted, with its provenance
+     * @param bool                    $grantsAll true when the actor holds the `'*'` scope (grants all)
+     * @param ?PermissionSource       $allSource provenance of the `'*'` grant, when $grantsAll
      */
     public function __construct(
         private array $granted,

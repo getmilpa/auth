@@ -24,9 +24,9 @@ namespace Milpa\Auth;
 final readonly class AuthContext
 {
     /**
-     * @param ?Actor              $actor    the verified identity, or `null` when there is none
-     *                                      (anonymous or invalid)
-     * @param AuthState           $state    how the request authenticated
+     * @param ?Actor              $actor       the verified identity, or `null` when there is none
+     *                                         (anonymous or invalid)
+     * @param AuthState           $state       how the request authenticated
      * @param array<string,mixed> $metadata    out-of-band detail — e.g. the rejection `reason` on an
      *                                         invalid context, the source ip, the request id
      * @param ?PermissionSet      $permissions the resolved permission set, or `null` when none was
