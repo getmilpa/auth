@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/getmilpa/auth/compare/v0.2.0...v0.3.0) (2026-07-28)
+
+
+### Miscellaneous Chores
+
+* release 0.3.0 ([de4049d](https://github.com/getmilpa/auth/commit/de4049d28d7cf7ebbd2dca14129c1d08b74ab9ff))
+
 ## [0.2.0](https://github.com/getmilpa/auth/compare/v0.1.0...v0.2.0) (2026-07-14)
 
 
