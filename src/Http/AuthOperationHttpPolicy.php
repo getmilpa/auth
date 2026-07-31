@@ -171,7 +171,7 @@ class AuthOperationHttpPolicy implements OperationHttpPolicy
      */
     public function enforceWebPolicy(Operation $op, ServerRequestInterface $request): ?ResponseInterface
     {
-        if (!class_exists(ToolContext::class) || !class_exists(PolicyGate::class)) {
+        if (!$this->policyLayerInstalled()) {
             return null;
         }
 
@@ -198,6 +198,18 @@ class AuthOperationHttpPolicy implements OperationHttpPolicy
         }
 
         return null;
+    }
+
+    /**
+     * Si la capa de política de `milpa/tool-runtime` está instalada.
+     *
+     * Es un método y no un `class_exists` en línea para que se pueda ejercitar el camino en que NO
+     * está: es una dependencia sugerida, así que en las pruebas de este paquete siempre está —y una
+     * rama que sólo corre en la instalación de alguien más es una rama que nadie probó nunca.
+     */
+    protected function policyLayerInstalled(): bool
+    {
+        return class_exists(ToolContext::class) && class_exists(PolicyGate::class);
     }
 
     /**

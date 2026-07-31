@@ -200,4 +200,91 @@ final class AuthOperationHttpPolicyTest extends TestCase
 
         self::assertNull($this->policy($container)->enforce($this->scoped(), $peticion));
     }
+
+    /**
+     * El 500 también aplica al camino de PERMISO, no sólo al de scopes.
+     *
+     * Son dos ramas distintas del mismo criterio, y probar una sola dejaría la otra libre de
+     * convertir un error del host en un 4xx que culpa a quien llamó.
+     */
+    public function testAPermissionedOperationWithNoChainIsAlsoAServerError(): void
+    {
+        $op = new Operation(
+            name: 'update_contact',
+            description: 'Update a contact',
+            handler: static fn (array $i): array => $i,
+            inputSchema: ['type' => 'object'],
+            permission: 'crm.contact:update',
+        );
+
+        try {
+            $this->policy($this->container([]))->enforce($op, new ServerRequest('POST', '/contact'));
+            self::fail('debería haber lanzado AuthMiddlewareNotInstalledException');
+        } catch (AuthMiddlewareNotInstalledException $e) {
+            self::assertSame(500, $e->statusCode());
+            self::assertStringContainsString('crm.contact:update', $e->getMessage());
+        }
+    }
+
+    /**
+     * La defensa en profundidad puede NEGAR por su cuenta, y se prueba llamándola directo.
+     *
+     * Se llama directo a propósito: por el camino normal la compuerta de scopes ya negó antes de
+     * llegar aquí, así que pasar por `enforce()` mediría la primera y no la segunda. Defensa en
+     * profundidad significa exactamente que la segunda decide sola — con el contexto honesto
+     * (`ToolContext::web`, principal y scopes reales) y el mismo `PolicyGate` que guarda MCP.
+     */
+    public function testTheDepthGateRefusesOnItsOwn(): void
+    {
+        $peticion = $this->conActor(
+            new ServerRequest('GET', '/secret'),
+            new Actor('user:9', ActorType::User, ['otra:cosa']),
+        );
+
+        $respuesta = $this->policy($this->conCadena())->enforceWebPolicy($this->scoped(), $peticion);
+
+        self::assertNotNull($respuesta, 'el segundo gate tiene que poder negar por su cuenta');
+        self::assertSame(403, $respuesta->getStatusCode());
+        /** @var array{code: string} $cuerpo */
+        $cuerpo = json_decode((string) $respuesta->getBody(), true);
+        self::assertSame('MILPA_SCOPE_DENIED', $cuerpo['code']);
+    }
+
+    /**
+     * Y la red de seguridad: sin actor en el contexto, la defensa en profundidad no revienta.
+     *
+     * Es inalcanzable por el camino normal —la compuerta de arriba ya admitió— y por eso existe: una
+     * red que nadie ejercita es una red que nadie sabe si aguanta.
+     */
+    public function testTheDepthGateSurvivesARequestWithNoActor(): void
+    {
+        self::assertNull(
+            $this->policy($this->conCadena())->enforceWebPolicy($this->scoped(), new ServerRequest('GET', '/secret')),
+        );
+    }
+
+    /**
+     * Sin `milpa/tool-runtime` instalado, la defensa en profundidad no hace nada — y no truena.
+     *
+     * Es opt-in: quien no lo instale sigue teniendo la compuerta de scopes, que es la que no es
+     * opcional. La rama sólo corre en la instalación de alguien más, así que se ejercita aquí
+     * sustituyendo la pregunta; si no, sería una rama que nadie probó nunca.
+     */
+    public function testWithoutTheToolRuntimeTheDepthGateIsANoOp(): void
+    {
+        $psr17 = new Psr17Factory();
+        $sinCapa = new class ($this->conCadena(), $psr17, $psr17) extends AuthOperationHttpPolicy {
+            protected function policyLayerInstalled(): bool
+            {
+                return false;
+            }
+        };
+
+        $peticion = $this->conActor(
+            new ServerRequest('GET', '/secret'),
+            new Actor('user:9', ActorType::User, ['otra:cosa']),
+        );
+
+        self::assertNull($sinCapa->enforceWebPolicy($this->scoped(), $peticion));
+    }
 }
