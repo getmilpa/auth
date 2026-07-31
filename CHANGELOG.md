@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/getmilpa/auth/compare/v0.3.0...v0.3.1) (2026-07-31)
+
+
+### Features
+
+* AuthOperationHttpPolicy — deciding whether a caller may run an operation ([f24e7d0](https://github.com/getmilpa/auth/commit/f24e7d0d9d3c621ba665647aa7cb3a5dbaee43f5))
+
 ## [0.3.0](https://github.com/getmilpa/auth/compare/v0.2.0...v0.3.0) (2026-07-28)
 
 
