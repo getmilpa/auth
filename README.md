@@ -247,11 +247,43 @@ verified assertion there produces proof, never a session directly; the host mint
 from that proof, and this package's `SessionStore`/`StartSession` take it from there exactly as they
 would for any other login path.
 
+## Serving an operation over HTTP
+
+An `Operation` (`milpa/command`) can declare `scopes` or a `permission`. `AuthOperationHttpPolicy` is
+what decides whether the caller may run it — the implementation of `milpa/command`'s
+`OperationHttpPolicy` contract, using the identity this package already provides:
+
+```php
+use Milpa\Auth\Http\AuthOperationHttpPolicy;
+
+$policy = new AuthOperationHttpPolicy($container, $psr17, $psr17);
+$denial = $policy->enforce($operation, $request);   // null = go ahead
+```
+
+Scope-typed operations go through `RequireScopeMiddleware` and then — if `milpa/tool-runtime` is
+installed — the same `PolicyGate` that guards the MCP surface, with an honest `ToolContext::web`.
+Permission-typed ones go through `RequirePermissionMiddleware`. A denial comes back as a formed 401
+or 403 rather than an exception, because an authorized refusal is not an error: it is the correct
+answer to asking.
+
+A protected operation on a host that wired **no** auth chain throws
+`AuthMiddlewareNotInstalledException` (500), never a 4xx. The caller did nothing wrong — the host
+declared something protected and left it unguarded.
+
+It lives here and not next to whatever projects operations to HTTP: it uses this package top to
+bottom, and putting it in a projector would drag identity into a framework floor meant to run
+without one.
+
 ## Requirements
 
 - PHP **≥ 8.3**
-- `psr/http-message` and `psr/http-server-middleware` (the PSR interfaces the HTTP seam speaks)
-- Nothing else — `milpa/auth` has no `milpa/*` runtime dependency, no ORM, no framework
+- `psr/http-message`, `psr/http-factory`, `psr/http-server-middleware` and `psr/container` — the PSR
+  interfaces the HTTP seam speaks. Interfaces only: this package never picks your PSR-7
+  implementation or your container.
+- [`milpa/command`](https://packagist.org/packages/milpa/command) **^0.3.1** — where `Operation` and
+  the `OperationHttpPolicy` contract live. It is the one `milpa/*` dependency, and it costs nothing:
+  that package requires only PHP and a PSR message interface.
+- Nothing else — no ORM, no framework, no HTTP implementation
 
 ## Documentation
 
