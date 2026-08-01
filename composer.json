@@ -53,7 +53,7 @@
     "milpa": {
       "capability": {
         "id": "identity",
-        "title": "Identidad: convierte un Bearer en un actor con scopes",
+        "title": "Identity: turns a Bearer into an actor with scopes",
         "unlocks": [
           "token:list",
           "token:new",
@@ -64,7 +64,7 @@
           "auth.verifier",
           "http.policy"
         ],
-        "briefing": "Esta app sabe qui\u00e9n llama por HTTP: hay actores verificados y scopes por operaci\u00f3n."
+        "briefing": "This app knows who calls over HTTP: there are verified actors and per-operation scopes."
       }
     }
   },
