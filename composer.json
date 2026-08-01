@@ -49,6 +49,25 @@
       "Milpa\\Docs\\": "vendor/milpa/core/tools/gen-docs/"
     }
   },
+  "extra": {
+    "milpa": {
+      "capability": {
+        "id": "identity",
+        "title": "Identidad: convierte un Bearer en un actor con scopes",
+        "unlocks": [
+          "token:list",
+          "token:new",
+          "token:revoke",
+          "operaciones protegidas por HTTP"
+        ],
+        "provides": [
+          "auth.verifier",
+          "http.policy"
+        ],
+        "briefing": "Esta app sabe qui\u00e9n llama por HTTP: hay actores verificados y scopes por operaci\u00f3n."
+      }
+    }
+  },
   "suggest": {
     "milpa/tool-runtime": "Defense in depth for HTTP-served operations: AuthOperationHttpPolicy runs an already-authorized request through the same PolicyGate that guards MCP."
   }
