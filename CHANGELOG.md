@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/getmilpa/auth/compare/v0.3.2...v0.3.3) (2026-08-01)
+
+
+### Bug Fixes
+
+* este paquete declara que aporta ([16be2ca](https://github.com/getmilpa/auth/commit/16be2ca68fc417c20fb05e960451ed25c34f7aad))
+
 ## [0.3.2](https://github.com/getmilpa/auth/compare/v0.3.1...v0.3.2) (2026-08-01)
 
 
