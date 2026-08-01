@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/getmilpa/auth/compare/v0.3.3...v0.3.4) (2026-08-01)
+
+
+### Bug Fixes
+
+* the capability contract speaks English ([e4e0270](https://github.com/getmilpa/auth/commit/e4e027046d32ab45cd38a518a47d860cd4b6aa87))
+
 ## [0.3.3](https://github.com/getmilpa/auth/compare/v0.3.2...v0.3.3) (2026-08-01)
 
 
