@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.5](https://github.com/getmilpa/auth/compare/v0.3.4...v0.3.5) (2026-08-02)
+
+
+### Bug Fixes
+
+* widen milpa/command and milpa/plugin pins to accept the 0.5/0.8 minors ([7888444](https://github.com/getmilpa/auth/commit/788844452fee09cc6d179800a62b60fc4f47ed15))
+
 ## [0.3.4](https://github.com/getmilpa/auth/compare/v0.3.3...v0.3.4) (2026-08-01)
 
 
