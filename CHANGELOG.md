@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.6](https://github.com/getmilpa/auth/compare/v0.3.5...v0.3.6) (2026-08-04)
+
+
+### Bug Fixes
+
+* **composer:** declarar type milpa-capability para que el paquete sea descubrible por lo que es ([05206f7](https://github.com/getmilpa/auth/commit/05206f7165b2ad553050b34cb9f23601f2e404ae))
+
 ## [0.3.5](https://github.com/getmilpa/auth/compare/v0.3.4...v0.3.5) (2026-08-02)
 
 
