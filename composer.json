@@ -64,7 +64,11 @@
           "auth.verifier",
           "http.policy"
         ],
-        "briefing": "This app knows who calls over HTTP: there are verified actors and per-operation scopes."
+        "briefing": "This app knows who calls over HTTP: there are verified actors and per-operation scopes.",
+        "contracts": {
+          "auth.verifier": "Milpa\\Auth\\AuthContext",
+          "http.policy": "Milpa\\Auth\\Http\\AuthOperationHttpPolicy"
+        }
       }
     }
   },
