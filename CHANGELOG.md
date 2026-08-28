@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [0.6.0](https://github.com/getmilpa/auth/compare/v0.5.0...v0.6.0) (2026-08-28)
+
+
+### Features
+
+* compose the passkey authentication ceremony safe, around a one-time challenge ([#27](https://github.com/getmilpa/auth/issues/27)) ([2ad338b](https://github.com/getmilpa/auth/commit/2ad338b88edd9bed500ff4a1ae7a1a6de8106adc))
+
 ## [0.5.0](https://github.com/getmilpa/auth/compare/v0.4.0...v0.5.0) (2026-08-28)
 
 
