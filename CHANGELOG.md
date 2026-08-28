@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [0.4.0](https://github.com/getmilpa/auth/compare/v0.3.12...v0.4.0) (2026-08-28)
+
+
+### Features
+
+* verify a WebAuthn assertion — the crypto throat of the passkey path ([#23](https://github.com/getmilpa/auth/issues/23)) ([dcfabe7](https://github.com/getmilpa/auth/commit/dcfabe730ff2e1245e0630083ec8418cb159f4ff))
+
 ## [0.3.10](https://github.com/getmilpa/auth/releases/tag/v0.3.10) (2026-08-12)
 
 Accepts `milpa/command ^0.8`, which ships the descent field — an argument that lowers an operation's ceiling, with its reason carried in the declaration.
