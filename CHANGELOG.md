@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [0.5.0](https://github.com/getmilpa/auth/compare/v0.4.0...v0.5.0) (2026-08-28)
+
+
+### Features
+
+* verify a WebAuthn registration and extract its credential ([#25](https://github.com/getmilpa/auth/issues/25)) ([21e4827](https://github.com/getmilpa/auth/commit/21e4827125916b3a8edeeeecb865334db43ab2bb))
+
 ## [0.4.0](https://github.com/getmilpa/auth/compare/v0.3.12...v0.4.0) (2026-08-28)
 
 
