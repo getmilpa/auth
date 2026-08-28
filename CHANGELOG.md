@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [0.8.0](https://github.com/getmilpa/auth/compare/v0.7.0...v0.8.0) (2026-08-28)
+
+
+### Features
+
+* FileSessionStore — a persistent session ledger for real cross-request logins ([#31](https://github.com/getmilpa/auth/issues/31)) ([cb0a18a](https://github.com/getmilpa/auth/commit/cb0a18a6ccfb07ca9b07c88ff9d8fba286db58ea))
+
 ## [0.7.0](https://github.com/getmilpa/auth/compare/v0.6.0...v0.7.0) (2026-08-28)
 
 
