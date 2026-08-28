@@ -155,6 +155,61 @@ final class WebAuthnAssertionVerifierTest extends TestCase
         ));
     }
 
+    public function testMalformedClientDataFails(): void
+    {
+        [$priv, $pub] = $this->keypair();
+        $challenge = random_bytes(32);
+        [, $authData, $sig] = $this->assertion($priv, $challenge, self::RP_ID);
+
+        // clientDataJSON that is not even JSON cannot bind a ceremony.
+        self::assertNull((new WebAuthnAssertionVerifier())->verify(
+            self::CRED_ID,
+            $pub,
+            $challenge,
+            self::RP_ID,
+            'not-json',
+            $authData,
+            $sig,
+        ));
+    }
+
+    public function testTruncatedAuthenticatorDataFails(): void
+    {
+        [$priv, $pub] = $this->keypair();
+        $challenge = random_bytes(32);
+        [$clientData, , $sig] = $this->assertion($priv, $challenge, self::RP_ID);
+
+        // authenticatorData shorter than rpIdHash(32) + flags(1) + counter(4) cannot be read.
+        self::assertNull((new WebAuthnAssertionVerifier())->verify(
+            self::CRED_ID,
+            $pub,
+            $challenge,
+            self::RP_ID,
+            $clientData,
+            'too-short',
+            $sig,
+        ));
+    }
+
+    public function testAnEmptyChallengeInClientDataFails(): void
+    {
+        [$priv, $pub] = $this->keypair();
+        $challenge = random_bytes(32);
+        [, $authData, $sig] = $this->assertion($priv, $challenge, self::RP_ID);
+
+        // A clientDataJSON carrying an empty challenge string decodes to nothing — not the issued challenge.
+        $clientData = (string) json_encode(['type' => 'webauthn.get', 'challenge' => '', 'origin' => 'https://' . self::RP_ID]);
+        self::assertNull((new WebAuthnAssertionVerifier())->verify(
+            self::CRED_ID,
+            $pub,
+            $challenge,
+            self::RP_ID,
+            $clientData,
+            $authData,
+            $sig,
+        ));
+    }
+
     // --- the simulated authenticator ---
 
     /** @return array{0: \OpenSSLAsymmetricKey, 1: string} */
