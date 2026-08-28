@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [0.7.0](https://github.com/getmilpa/auth/compare/v0.6.0...v0.7.0) (2026-08-28)
+
+
+### Features
+
+* a recognized passkey mints a session — the two surfaces converge ([#29](https://github.com/getmilpa/auth/issues/29)) ([0cf3aae](https://github.com/getmilpa/auth/commit/0cf3aae8d2646025f72fe3376b0cfd2b5f32a9b5))
+
 ## [0.6.0](https://github.com/getmilpa/auth/compare/v0.5.0...v0.6.0) (2026-08-28)
 
 
