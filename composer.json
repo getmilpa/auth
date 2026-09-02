@@ -1,6 +1,6 @@
 {
   "name": "milpa/auth",
-  "description": "Runtime-native identity vocabulary for the Milpa PHP framework: the typed Actor / AuthContext / AuthState / Credential primitives and the CredentialVerifier, AuthContextFactory and SessionStore contracts \u2014 the trusted producer of the context policies need. Zero framework, zero ORM, fail-closed by construction.",
+  "description": "Runtime-native identity vocabulary for the Milpa PHP framework: the typed Actor / AuthContext / AuthState / Credential primitives, the CredentialVerifier, AuthContextFactory and SessionStore contracts, and the WebAuthn ceremony types (RelyingParty, WebAuthnVerifier, assertion/registration value objects) \u2014 the trusted producer of the context policies need. Zero framework, zero ORM, fail-closed by construction.",
   "keywords": [
     "php",
     "milpa",

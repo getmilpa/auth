@@ -237,13 +237,16 @@ $store->read($record->id);   // the record — or null if it is expired/revoked 
 
 ## Passkeys
 
-WebAuthn/passkey support does not live in this package. `CredentialType::Passkey` exists here only as
-a **vocabulary marker** — for logs, UI, and reports — never as a per-request credential a
+This package owns the WebAuthn ceremony vocabulary and the crypto throat of the passkey path:
+`RelyingParty`, `Contracts\WebAuthnVerifier`, the assertion/registration value objects, and the
+verifiers that check an assertion or extract a registered credential. `CredentialType::Passkey`
+remains a **vocabulary marker** — for logs, UI, and reports — never a per-request credential a
 `CredentialVerifier` checks: a passkey ceremony is stateful and two-round-trip, the opposite of the
-single-shot shape `Credential`/`CredentialVerifier` are built for. The ceremony itself — the relying
-party, the challenge lifecycle, the credential store, and a `lbuchs/webauthn` adapter — ships in
+single-shot shape `Credential`/`CredentialVerifier` are built for.
+
+The `lbuchs/webauthn` adapter and the in-memory challenge/credential stores ship in
 [`milpa/auth-webauthn`](https://github.com/getmilpa/auth-webauthn), one tier above this package. A
-verified assertion there produces proof, never a session directly; the host mints a `SessionRecord`
+verified assertion produces proof, never a session directly; the host mints a `SessionRecord`
 from that proof, and this package's `SessionStore`/`StartSession` take it from there exactly as they
 would for any other login path.
 
