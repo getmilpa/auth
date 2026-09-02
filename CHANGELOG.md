@@ -11,6 +11,13 @@
   `Milpa\Auth\WebAuthn\*`. The lbuchs adapter and in-memory stores stay in
   `milpa/auth-webauthn` 0.2.
 
+## [0.9.0](https://github.com/getmilpa/auth/compare/v0.8.0...v0.9.0) (2026-09-02)
+
+
+### Features
+
+* own the WebAuthn ceremony vocabulary apps already import ([#33](https://github.com/getmilpa/auth/issues/33)) ([5d25f4d](https://github.com/getmilpa/auth/commit/5d25f4d83ebf7e31a94a2b786bff4209498092df))
+
 ## [0.8.0](https://github.com/getmilpa/auth/compare/v0.7.0...v0.8.0) (2026-08-28)
 
 
