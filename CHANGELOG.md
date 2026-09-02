@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+* Own the WebAuthn ceremony vocabulary that apps already import (`RelyingParty`,
+  `Contracts\WebAuthnVerifier`, `WebAuthnAssertionResult`, `WebAuthnAuthenticationResponse`,
+  and the rest of the registration/authentication value objects and store contracts). These
+  types moved here from `milpa/auth-webauthn` so one package is the authority for
+  `Milpa\Auth\WebAuthn\*`. The lbuchs adapter and in-memory stores stay in
+  `milpa/auth-webauthn` 0.2.
 
 ## [0.8.0](https://github.com/getmilpa/auth/compare/v0.7.0...v0.8.0) (2026-08-28)
 
