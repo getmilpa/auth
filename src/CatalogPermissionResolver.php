@@ -23,7 +23,7 @@ use Milpa\Auth\Contracts\PermissionResolver;
  * `'*'` grant. Fail-closed: an unknown role grants nothing, and a scope that is not a valid permission
  * key is skipped from the set (it stays checkable via {@see Actor::hasScope()}). Intentionally
  * tenant-blind — it threads {@see PermissionContext} through without interpreting it, so a tenant-aware
- * host or a {@see Contracts\Policy} can decide without a breaking change.
+ * host can decide without a breaking change.
  */
 final class CatalogPermissionResolver implements PermissionResolver
 {

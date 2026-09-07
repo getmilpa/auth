@@ -21,22 +21,11 @@ use Milpa\Auth\CatalogPermissionResolver;
 use Milpa\Auth\Permission;
 use Milpa\Auth\PermissionContext;
 use Milpa\Auth\PermissionReport;
-use Milpa\Auth\PolicyDecision;
-use Milpa\Auth\PolicyEffect;
 use Milpa\Auth\Role;
 use PHPUnit\Framework\TestCase;
 
-final class PolicyAndReportTest extends TestCase
+final class PermissionReportTest extends TestCase
 {
-    public function testPolicyDecisionPredicates(): void
-    {
-        self::assertTrue(PolicyDecision::allow()->isAllowed());
-        self::assertTrue(PolicyDecision::deny('nope')->isDenied());
-        self::assertSame('nope', PolicyDecision::deny('nope')->reason);
-        self::assertTrue(PolicyDecision::abstain()->isAbstain());
-        self::assertSame(PolicyEffect::Allow, PolicyDecision::allow()->effect);
-    }
-
     public function testPermissionReportSnapshotsGrantsAndProvenance(): void
     {
         $resolver = new CatalogPermissionResolver(new ArrayPermissionCatalog(
