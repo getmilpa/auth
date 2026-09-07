@@ -11,6 +11,17 @@
   `Milpa\Auth\WebAuthn\*`. The lbuchs adapter and in-memory stores stay in
   `milpa/auth-webauthn` 0.2.
 
+## [0.10.0](https://github.com/getmilpa/auth/compare/v0.9.0...v0.10.0) (2026-09-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* Milpa\Auth\Contracts\Policy, Milpa\Auth\PolicyDecision and Milpa\Auth\PolicyEffect are removed. They were the seam for attribute-based rules that ADR 0002 decides this package does NOT have, and across the framework's 37 packages they had zero implementations and zero consumers. Authorization runs through PermissionResolver, PermissionCatalog and PermissionContext. See UPGRADING.md.
+
+### Features
+
+* release the Policy retirement as the breaking change it is ([#36](https://github.com/getmilpa/auth/issues/36)) ([0546ae7](https://github.com/getmilpa/auth/commit/0546ae7bf43892796d87ac3778d4f44cc02f0944))
+
 ## [0.9.0](https://github.com/getmilpa/auth/compare/v0.8.0...v0.9.0) (2026-09-02)
 
 
