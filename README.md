@@ -183,14 +183,14 @@ picture — actor, context, roles held, resolved set — as one Admin-readiness 
 
 **Three non-goals, stated on purpose:**
 - **No ABAC engine.** 2a ships structured RBAC-lite — roles and flat scopes, resolved and explained.
-  Attribute-based rules have a seam (`Policy`, see [ADR 0002](docs/adr/0002-rbac-lite-not-abac.md)),
+  Attribute-based rules are deliberately absent (see [ADR 0002](docs/adr/0002-rbac-lite-not-abac.md)),
   but zero implementations ship in this package.
 - **`'*'` stays the only wildcard.** `posts:*` is not a prefix match anywhere in this layer — it is a
   literal, unmatchable string. Grant the bare `'*'` only to an actor that should bypass every check.
 - **Tenant membership is product policy — the default resolver is tenant-blind.**
   `CatalogPermissionResolver` threads `PermissionContext` through untouched; it never reads
   `$tenantId`. A host that needs "this role only inside this tenant" supplies its own
-  `PermissionResolver`, or a `Policy`, rather than the leaf guessing at tenant conventions it cannot
+  `PermissionResolver`, rather than the leaf guessing at tenant conventions it cannot
   know.
 
 ## Auth defines *what* it needs; storage decides *how*
