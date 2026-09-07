@@ -2,6 +2,8 @@
 
 ## 0.10.0 — the `Policy` seam is gone
 
+*(This package is at v0.9.0; removing published classes makes the next release a breaking one.)*
+
 `Milpa\Auth\Contracts\Policy`, `Milpa\Auth\PolicyDecision` and `Milpa\Auth\PolicyEffect` were **removed**.
 
 They were a seam for attribute-based rules that this package deliberately does not have: `ADR 0002` decides
