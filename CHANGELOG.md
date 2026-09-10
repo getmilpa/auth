@@ -11,6 +11,14 @@
   `Milpa\Auth\WebAuthn\*`. The lbuchs adapter and in-memory stores stay in
   `milpa/auth-webauthn` 0.2.
 
+## [0.10.1](https://github.com/getmilpa/auth/compare/v0.10.0...v0.10.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* a simulated authenticator pads its coordinates, and the key that used to fail has a test ([#40](https://github.com/getmilpa/auth/issues/40)) ([aa04268](https://github.com/getmilpa/auth/commit/aa0426847d270baa9e50c1b44e421183dc5b145a))
+* the manifest speaks the language it ships in ([#38](https://github.com/getmilpa/auth/issues/38)) ([e5bab18](https://github.com/getmilpa/auth/commit/e5bab18c46e45f84a9895423d72a67ca93936991))
+
 ## [0.10.0](https://github.com/getmilpa/auth/compare/v0.9.0...v0.10.0) (2026-09-07)
 
 
