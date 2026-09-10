@@ -58,7 +58,7 @@
           "token:list",
           "token:new",
           "token:revoke",
-          "operaciones protegidas por HTTP"
+          "operations protected over HTTP"
         ],
         "provides": [
           "auth.verifier",
