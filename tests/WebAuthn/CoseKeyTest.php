@@ -25,7 +25,12 @@ final class CoseKeyTest extends TestCase
     {
         $key = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
         $d = openssl_pkey_get_details($key);
-        $pem = CoseKey::es256ToPem([1 => 2, 3 => -7, -1 => 1, -2 => $d['ec']['x'], -3 => $d['ec']['y']]);
+        // 32 bytes each, leading zeros preserved — what a real authenticator sends and what RFC 8152
+        // §13.1.1 requires. `openssl_pkey_get_details()` strips the leading zero, which happens to
+        // 0.85% of fresh P-256 keys and made this suite fail about one run in 118 for reasons that
+        // looked unrelated to the test (greenhouse decisions/0286).
+        $pad = static fn (string $raw): string => str_pad($raw, 32, "\x00", \STR_PAD_LEFT);
+        $pem = CoseKey::es256ToPem([1 => 2, 3 => -7, -1 => 1, -2 => $pad($d['ec']['x']), -3 => $pad($d['ec']['y'])]);
 
         // The PEM must actually verify a signature by the matching private key — proof it is the right key.
         $challenge = random_bytes(32);
