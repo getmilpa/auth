@@ -192,6 +192,78 @@ final class WebAuthnRegistrationVerifierTest extends TestCase
     }
 
     /** Build an attestationObject (fmt "none") wrapping authData with the key's attested credential data. */
+    /**
+     * THE KEY THIS SUITE USED TO FAIL ON, on purpose — the control that cannot pass by luck.
+     *
+     * The round-trip above picks a random key, so it exercised the defect 0.85% of the time and
+     * «400 runs, 0 failures» only says the dice were kind. This one SEARCHES for a key with a short
+     * coordinate and then asserts the round-trip holds for it, so the padding is proven rather than
+     * hoped: revert `coordinate()` to the raw bytes and this test fails every single run.
+     *
+     * The search is cheap because the defect is common: measured at one key in ~118, found at attempt
+     * 41 in 28ms. The bound is generous enough that missing is not a real outcome (p < 1e-11 at the
+     * measured rate) and is asserted rather than skipped, because a control that quietly finds nothing
+     * is the failure mode this whole file is about.
+     */
+    public function testAKeyWithAShortCoordinateStillRoundTrips(): void
+    {
+        $key = null;
+        for ($attempt = 1; $attempt <= 3000; $attempt++) {
+            $candidate = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
+            self::assertNotFalse($candidate);
+            $details = openssl_pkey_get_details($candidate);
+            self::assertIsArray($details);
+            if (\strlen((string) $details['ec']['x']) < 32 || \strlen((string) $details['ec']['y']) < 32) {
+                $key = $candidate;
+
+                break;
+            }
+        }
+
+        self::assertNotNull($key, 'no key with a short coordinate turned up in 3000 tries, which at the measured rate means the search itself is broken');
+
+        $challenge = random_bytes(32);
+        $credId = random_bytes(20);
+
+        $cred = (new WebAuthnRegistrationVerifier())->verify(
+            $challenge,
+            self::RP_ID,
+            $this->clientData('webauthn.create', $challenge),
+            $this->attestationObject($key, $credId, self::RP_ID, upAt: true, counter: 1),
+        );
+
+        self::assertInstanceOf(RegisteredCredential::class, $cred, 'a coordinate whose leading byte is zero is a valid key; only this fixture ever said otherwise');
+
+        // And it verifies, so the padding produced the RIGHT key and not merely a well-sized one.
+        $authChallenge = random_bytes(32);
+        [$aClient, $aData, $sig] = $this->assertion($key, $authChallenge, self::RP_ID);
+        self::assertNotNull(
+            (new WebAuthnAssertionVerifier())->verify($cred->credentialId, $cred->publicKeyPem, $authChallenge, self::RP_ID, $aClient, $aData, $sig, 0),
+            'the padded coordinate must reconstruct the same public key, not just a 32-byte string',
+        );
+    }
+
+    /**
+     * A P-256 coordinate as a REAL authenticator emits it: exactly 32 bytes, leading zeros preserved.
+     *
+     * 🚨 THIS FIXTURE MADE CI LIE, AND NOT RARELY. `openssl_pkey_get_details()` returns each coordinate
+     * as a big-endian integer with no left padding, so a key whose x or y happens to start with a zero
+     * byte comes back 31 bytes long. Measured: **17 of 2000 fresh P-256 keys — 0.85%, about one CI run
+     * in 118**. Packed raw into the COSE map, that key is not a valid ES256 key, the verifier correctly
+     * refuses it, and the failure reads as a flake in a test about something else entirely.
+     *
+     * RFC 8152 §13.1.1 requires the leading zero octets to be PRESERVED, which is why the verifier is
+     * right to be strict and this simulated authenticator was wrong to be lazy. The same defect was
+     * diagnosed once before (greenhouse decisions/0260) and the padding was added to two fixtures —
+     * `SyntheticPasskey` and `TestAuthenticator` — while these two in this package kept the raw bytes.
+     * A fix that is not swept across every site of the same shape is a fix that comes back
+     * (greenhouse decisions/0286).
+     */
+    private static function coordinate(string $raw): string
+    {
+        return str_pad($raw, 32, "\x00", \STR_PAD_LEFT);
+    }
+
     private function attestationObject(\OpenSSLAsymmetricKey $key, string $credId, string $rpId, bool $upAt = true, int $counter = 0): string
     {
         $details = openssl_pkey_get_details($key);
@@ -199,8 +271,8 @@ final class WebAuthnRegistrationVerifierTest extends TestCase
             1 => 2,          // kty EC2
             3 => -7,         // alg ES256
             -1 => 1,         // crv P-256
-            -2 => $details['ec']['x'],
-            -3 => $details['ec']['y'],
+            -2 => self::coordinate($details['ec']['x']),
+            -3 => self::coordinate($details['ec']['y']),
         ]);
 
         $flags = $upAt ? "\x41" : "\x00"; // UP | AT (0x40) when present
