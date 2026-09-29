@@ -25,6 +25,17 @@
   `Milpa\Auth\WebAuthn\*`. The lbuchs adapter and in-memory stores stay in
   `milpa/auth-webauthn` 0.2.
 
+## [0.11.0](https://github.com/getmilpa/auth/compare/v0.10.1...v0.11.0) (2026-09-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* WebAuthnAssertionVerifier::verify, WebAuthnRegistrationVerifier::verify, PasskeyAuthenticator::authenticate and PasskeyLogin::login take a RelyingParty instead of string $rpId; assertions and registrations without UV or from an unlisted origin are refused; RelyingParty validates its id and origins. See UPGRADING.md.
+
+### Bug Fixes
+
+* a passkey ceremony is held to its origin and to a verified user ([#41](https://github.com/getmilpa/auth/issues/41)) ([3b15901](https://github.com/getmilpa/auth/commit/3b1590185d562cbc7fe860efcb34e5fd176f631a))
+
 ## [0.10.1](https://github.com/getmilpa/auth/compare/v0.10.0...v0.10.1) (2026-09-10)
 
 
