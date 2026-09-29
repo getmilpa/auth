@@ -244,6 +244,31 @@ remains a **vocabulary marker** — for logs, UI, and reports — never a per-re
 `CredentialVerifier` checks: a passkey ceremony is stateful and two-round-trip, the opposite of the
 single-shot shape `Credential`/`CredentialVerifier` are built for.
 
+The verifiers hold every ceremony to the `RelyingParty` it runs for: the clientDataJSON `origin` must
+be one of its `allowedOrigins` (exact match), the authenticatorData must open with its `id`'s hash, and
+the user must be **verified** (the UV flag), not merely present. A `RelyingParty` that names no origin,
+or an origin outside its `id`, throws when it is built, so a misconfigured host fails at boot instead
+of accepting any page that relays the ceremony:
+
+```php
+use Milpa\Auth\WebAuthn\PasskeyAuthenticator;
+use Milpa\Auth\WebAuthn\RelyingParty;
+use Milpa\Auth\WebAuthn\UserVerificationRequirement;
+use Milpa\Auth\WebAuthn\WebAuthnAssertionVerifier;
+
+$rp = new RelyingParty('example.com', 'Example', ['https://example.com', 'https://app.example.com']);
+
+$passkey = (new PasskeyAuthenticator($challenges, $credentials))
+    ->authenticate($rp, $credentialId, $clientDataJson, $authenticatorData, $signature);
+
+// Only if the house deliberately admits authenticators that cannot verify their user — and sends the
+// browser the same `userVerification: 'preferred'`:
+$relaxed = new PasskeyAuthenticator($challenges, $credentials,
+    new WebAuthnAssertionVerifier(UserVerificationRequirement::Preferred));
+```
+
+`WebAuthnRegistrationVerifier` takes the same `RelyingParty` and the same optional requirement.
+
 The `lbuchs/webauthn` adapter and the in-memory challenge/credential stores ship in
 [`milpa/auth-webauthn`](https://github.com/getmilpa/auth-webauthn), one tier above this package. A
 verified assertion produces proof, never a session directly; the host mints a `SessionRecord`

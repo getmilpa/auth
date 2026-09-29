@@ -62,13 +62,13 @@ final class PasskeyLogin
      * @param string $signature         the assertion signature
      */
     public function login(
-        string $rpId,
+        RelyingParty $rp,
         string $credentialId,
         string $clientDataJson,
         string $authenticatorData,
         string $signature,
     ): ?SessionRecord {
-        $passkey = $this->authenticator->authenticate($rpId, $credentialId, $clientDataJson, $authenticatorData, $signature);
+        $passkey = $this->authenticator->authenticate($rp, $credentialId, $clientDataJson, $authenticatorData, $signature);
         if ($passkey === null) {
             return null;
         }

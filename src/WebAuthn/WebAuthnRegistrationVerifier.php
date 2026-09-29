@@ -20,8 +20,9 @@ namespace Milpa\Auth\WebAuthn;
  *
  * Registration's load-bearing job is to come away with a REAL, verifiable public key bound to THIS
  * challenge and relying party — the key that {@see WebAuthnAssertionVerifier} will later check assertions
- * against. So this reads the attestationObject (CBOR), checks the create-ceremony's clientData binding and
- * the authenticatorData (rpIdHash, user-present, the attested-credential-data flag), pulls the credential
+ * against. So this reads the attestationObject (CBOR), checks the create-ceremony's clientData binding
+ * (type, challenge, and an origin among the relying party's allowedOrigins) and the authenticatorData
+ * (rpIdHash, user-present, user-verified unless explicitly relaxed, the attested-credential-data flag), pulls the credential
  * id and the COSE public key out of the attested credential data, and converts the key to PEM.
  *
  * ATTESTATION TRUST IS OUT OF SCOPE for v1 (greenhouse decisions/0123): this does not verify the
@@ -32,29 +33,43 @@ namespace Milpa\Auth\WebAuthn;
 final class WebAuthnRegistrationVerifier
 {
     private const FLAG_USER_PRESENT = 0x01;
+    private const FLAG_USER_VERIFIED = 0x04;
     private const FLAG_ATTESTED_CREDENTIAL_DATA = 0x40;
+
+    /**
+     * @param UserVerificationRequirement $userVerification `Required` by default; relax it only on purpose,
+     *                                                      matching the `userVerification` the host sent
+     */
+    public function __construct(
+        private readonly UserVerificationRequirement $userVerification = UserVerificationRequirement::Required,
+    ) {
+    }
 
     /**
      * Verify a registration and extract its credential, or return null when the proof does not hold.
      *
-     * @param string $expectedChallenge the raw challenge bytes the server issued for this registration
-     * @param string $rpId              the relying-party id whose SHA-256 must open the authenticatorData
-     * @param string $clientDataJson    the raw bytes of the browser's clientDataJSON
-     * @param string $attestationObject the raw CBOR attestationObject the browser returned
+     * @param string       $expectedChallenge the raw challenge bytes the server issued for this registration
+     * @param RelyingParty $rp                the relying party: its id's SHA-256 must open the authenticatorData, and
+     *                                        the clientDataJSON origin must be one of its allowedOrigins
+     * @param string       $clientDataJson    the raw bytes of the browser's clientDataJSON
+     * @param string       $attestationObject the raw CBOR attestationObject the browser returned
      */
     public function verify(
         string $expectedChallenge,
-        string $rpId,
+        RelyingParty $rp,
         string $clientDataJson,
         string $attestationObject,
     ): ?RegisteredCredential {
-        // 1. A create ceremony, bound to the issued challenge.
+        // 1. A create ceremony, bound to the issued challenge, run on a page this relying party serves.
         $clientData = json_decode($clientDataJson, true);
         if (!\is_array($clientData) || ($clientData['type'] ?? null) !== 'webauthn.create') {
             return null;
         }
         $challenge = self::base64UrlDecode(\is_string($clientData['challenge'] ?? null) ? $clientData['challenge'] : '');
         if ($challenge === null || !hash_equals($expectedChallenge, $challenge)) {
+            return null;
+        }
+        if (!\is_string($clientData['origin'] ?? null) || !$rp->allowsOrigin($clientData['origin'])) {
             return null;
         }
 
@@ -73,11 +88,14 @@ final class WebAuthnRegistrationVerifier
         if (\strlen($authData) < 37) {
             return null;
         }
-        if (!hash_equals(hash('sha256', $rpId, true), substr($authData, 0, 32))) {
+        if (!hash_equals(hash('sha256', $rp->id, true), substr($authData, 0, 32))) {
             return null;
         }
         $flags = \ord($authData[32]);
         if (($flags & self::FLAG_USER_PRESENT) === 0 || ($flags & self::FLAG_ATTESTED_CREDENTIAL_DATA) === 0) {
+            return null;
+        }
+        if ($this->userVerification->demandsVerification() && ($flags & self::FLAG_USER_VERIFIED) === 0) {
             return null;
         }
         $signCount = (int) (unpack('N', substr($authData, 33, 4))[1] ?? 0);

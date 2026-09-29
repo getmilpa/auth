@@ -49,7 +49,7 @@ final class PasskeyAuthenticator
      * @param string $signature         the assertion signature
      */
     public function authenticate(
-        string $rpId,
+        RelyingParty $rp,
         string $credentialId,
         string $clientDataJson,
         string $authenticatorData,
@@ -72,7 +72,7 @@ final class PasskeyAuthenticator
             $credentialId,
             $credential->publicKeyPem,
             $challenge,
-            $rpId,
+            $rp,
             $clientDataJson,
             $authenticatorData,
             $signature,

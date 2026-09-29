@@ -22,6 +22,7 @@ use Milpa\Auth\WebAuthn\PasskeyAuthenticator;
 use Milpa\Auth\WebAuthn\PasskeyLogin;
 use Milpa\Auth\WebAuthn\RegisteredCredential;
 use Milpa\Auth\SessionRecord;
+use Milpa\Auth\WebAuthn\RelyingParty;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -51,7 +52,7 @@ final class PasskeyLoginTest extends TestCase
         $challenge = $auth->challenge();
         [$client, $data, $sig] = $this->assertion($key, $challenge);
 
-        $session = $login->login(self::RP_ID, self::CRED, $client, $data, $sig);
+        $session = $login->login(self::rp(), self::CRED, $client, $data, $sig);
 
         self::assertInstanceOf(SessionRecord::class, $session);
         self::assertSame('passkey:' . self::CRED, $session->actorId);
@@ -69,7 +70,7 @@ final class PasskeyLoginTest extends TestCase
         $challenge = $auth->challenge();
         [$client, $data, $sig] = $this->assertion($key, $challenge);
 
-        self::assertNull($login->login(self::RP_ID, self::CRED, $client, $data, $sig));
+        self::assertNull($login->login(self::rp(), self::CRED, $client, $data, $sig));
     }
 
     public function testAReplayedAssertionMintsNoSession(): void
@@ -79,8 +80,19 @@ final class PasskeyLoginTest extends TestCase
         $challenge = $auth->challenge();
         [$client, $data, $sig] = $this->assertion($key, $challenge);
 
-        self::assertNotNull($login->login(self::RP_ID, self::CRED, $client, $data, $sig), 'first login works');
-        self::assertNull($login->login(self::RP_ID, self::CRED, $client, $data, $sig), 'the challenge is spent — no second session');
+        self::assertNotNull($login->login(self::rp(), self::CRED, $client, $data, $sig), 'first login works');
+        self::assertNull($login->login(self::rp(), self::CRED, $client, $data, $sig), 'the challenge is spent — no second session');
+    }
+
+    public function testAPasskeyRelayedFromAForeignOriginMintsNoSession(): void
+    {
+        $sessions = new InMemorySessionStore();
+        [$login, $auth, $key] = $this->login($sessions, scopesFor: static fn (string $c): array => ['*']);
+        $challenge = $auth->challenge();
+        // A phishing page relays the ceremony: the signature is genuine, the page it ran on is not ours.
+        [$client, $data, $sig] = $this->assertion($key, $challenge, 'https://evil.example');
+
+        self::assertNull($login->login(self::rp(), self::CRED, $client, $data, $sig));
     }
 
     // --- helpers ---
@@ -108,17 +120,23 @@ final class PasskeyLoginTest extends TestCase
     }
 
     /** @return array{0: string, 1: string, 2: string} */
-    private function assertion(\OpenSSLAsymmetricKey $key, string $challenge): array
+    private function assertion(\OpenSSLAsymmetricKey $key, string $challenge, string $origin = 'https://' . self::RP_ID): array
     {
         $client = (string) json_encode([
             'type' => 'webauthn.get',
             'challenge' => rtrim(strtr(base64_encode($challenge), '+/', '-_'), '='),
-            'origin' => 'https://' . self::RP_ID,
+            'origin' => $origin,
         ]);
-        $data = hash('sha256', self::RP_ID, true) . "\x01" . pack('N', 9);
+        $data = hash('sha256', self::RP_ID, true) . "\x05" . pack('N', 9);
         $sig = '';
         openssl_sign($data . hash('sha256', $client, true), $sig, $key, OPENSSL_ALGO_SHA256);
 
         return [$client, $data, $sig];
+    }
+
+    /** The relying party this suite's simulated authenticator answers for. */
+    private static function rp(): RelyingParty
+    {
+        return new RelyingParty(self::RP_ID, 'Milpa', ['https://' . self::RP_ID]);
     }
 }

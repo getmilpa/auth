@@ -19,6 +19,7 @@ use Milpa\Auth\WebAuthn\FilePasskeyCredentialStore;
 use Milpa\Auth\WebAuthn\PasskeyAuthenticator;
 use Milpa\Auth\WebAuthn\RegisteredCredential;
 use Milpa\Auth\WebAuthn\VerifiedPasskey;
+use Milpa\Auth\WebAuthn\RelyingParty;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -49,7 +50,7 @@ final class PasskeyAuthenticatorTest extends TestCase
         $challenge = $auth->challenge();
         [$client, $data, $sig] = $this->assertion($key, $challenge, self::RP_ID, counter: 3);
 
-        $result = $auth->authenticate(self::RP_ID, self::CRED, $client, $data, $sig);
+        $result = $auth->authenticate(self::rp(), self::CRED, $client, $data, $sig);
 
         self::assertInstanceOf(VerifiedPasskey::class, $result);
         self::assertSame(self::CRED, $result->credentialId);
@@ -62,9 +63,9 @@ final class PasskeyAuthenticatorTest extends TestCase
         $challenge = $auth->challenge();
         [$client, $data, $sig] = $this->assertion($key, $challenge, self::RP_ID, counter: 3);
 
-        self::assertNotNull($auth->authenticate(self::RP_ID, self::CRED, $client, $data, $sig), 'first use works');
+        self::assertNotNull($auth->authenticate(self::rp(), self::CRED, $client, $data, $sig), 'first use works');
         // Same assertion again: the challenge was spent, so the replay is refused though the signature is fine.
-        self::assertNull($auth->authenticate(self::RP_ID, self::CRED, $client, $data, $sig), 'the challenge is single-use');
+        self::assertNull($auth->authenticate(self::rp(), self::CRED, $client, $data, $sig), 'the challenge is single-use');
     }
 
     public function testAnExpiredChallengeIsRefused(): void
@@ -75,7 +76,7 @@ final class PasskeyAuthenticatorTest extends TestCase
 
         $this->now += 120; // past the ttl
 
-        self::assertNull($auth->authenticate(self::RP_ID, self::CRED, $client, $data, $sig));
+        self::assertNull($auth->authenticate(self::rp(), self::CRED, $client, $data, $sig));
     }
 
     public function testANeverIssuedChallengeIsRefused(): void
@@ -84,7 +85,7 @@ final class PasskeyAuthenticatorTest extends TestCase
         // Sign over a challenge the store never issued.
         [$client, $data, $sig] = $this->assertion($key, random_bytes(32), self::RP_ID, counter: 3);
 
-        self::assertNull($auth->authenticate(self::RP_ID, self::CRED, $client, $data, $sig));
+        self::assertNull($auth->authenticate(self::rp(), self::CRED, $client, $data, $sig));
     }
 
     public function testAnUnknownCredentialIsRefused(): void
@@ -93,7 +94,7 @@ final class PasskeyAuthenticatorTest extends TestCase
         $challenge = $auth->challenge();
         [$client, $data, $sig] = $this->assertion($key, $challenge, self::RP_ID, counter: 3);
 
-        self::assertNull($auth->authenticate(self::RP_ID, 'someone-else', $client, $data, $sig));
+        self::assertNull($auth->authenticate(self::rp(), 'someone-else', $client, $data, $sig));
     }
 
     public function testACounterRegressionSurfacesACloneAndIsRefused(): void
@@ -103,7 +104,7 @@ final class PasskeyAuthenticatorTest extends TestCase
         // Counter 5 <= stored 10 means two authenticators share this credential.
         [$client, $data, $sig] = $this->assertion($key, $challenge, self::RP_ID, counter: 5);
 
-        self::assertNull($auth->authenticate(self::RP_ID, self::CRED, $client, $data, $sig));
+        self::assertNull($auth->authenticate(self::rp(), self::CRED, $client, $data, $sig));
     }
 
     public function testABadSignatureIsRefused(): void
@@ -113,7 +114,7 @@ final class PasskeyAuthenticatorTest extends TestCase
         [$client, $data, $sig] = $this->assertion($key, $challenge, self::RP_ID, counter: 3);
         $sig[10] = \chr((\ord($sig[10]) + 1) % 256); // corrupt the signature after signing
 
-        self::assertNull($auth->authenticate(self::RP_ID, self::CRED, $client, $data, $sig));
+        self::assertNull($auth->authenticate(self::rp(), self::CRED, $client, $data, $sig));
     }
 
     public function testAnEmptyChallengeInClientDataIsRefused(): void
@@ -121,11 +122,11 @@ final class PasskeyAuthenticatorTest extends TestCase
         [$auth, $key] = $this->authenticator(storedCount: 0);
         $auth->challenge();
         $client = (string) json_encode(['type' => 'webauthn.get', 'challenge' => '', 'origin' => 'https://' . self::RP_ID]);
-        $data = hash('sha256', self::RP_ID, true) . "\x01" . pack('N', 3);
+        $data = hash('sha256', self::RP_ID, true) . "\x05" . pack('N', 3);
         $sig = '';
         openssl_sign($data . hash('sha256', $client, true), $sig, $key, OPENSSL_ALGO_SHA256);
 
-        self::assertNull($auth->authenticate(self::RP_ID, self::CRED, $client, $data, $sig));
+        self::assertNull($auth->authenticate(self::rp(), self::CRED, $client, $data, $sig));
     }
 
     // --- helpers ---
@@ -156,10 +157,16 @@ final class PasskeyAuthenticatorTest extends TestCase
             'challenge' => rtrim(strtr(base64_encode($challenge), '+/', '-_'), '='),
             'origin' => 'https://' . $rpId,
         ]);
-        $data = hash('sha256', $rpId, true) . "\x01" . pack('N', $counter);
+        $data = hash('sha256', $rpId, true) . "\x05" . pack('N', $counter); // UP | UV
         $sig = '';
         openssl_sign($data . hash('sha256', $client, true), $sig, $key, OPENSSL_ALGO_SHA256);
 
         return [$client, $data, $sig];
+    }
+
+    /** The relying party this suite's simulated authenticator answers for. */
+    private static function rp(): RelyingParty
+    {
+        return new RelyingParty(self::RP_ID, 'Milpa', ['https://' . self::RP_ID]);
     }
 }

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### ⚠ BREAKING CHANGES
+
+* The passkey verifiers now check the clientDataJSON `origin` against the relying party's
+  `allowedOrigins`, and require the UV (user verified) flag unless built with an explicitly relaxed
+  `UserVerificationRequirement`. `WebAuthnAssertionVerifier::verify`,
+  `WebAuthnRegistrationVerifier::verify`, `PasskeyAuthenticator::authenticate` and `PasskeyLogin::login`
+  take a `RelyingParty` instead of a `string $rpId`, and `RelyingParty` refuses to be built without a
+  valid origin. See UPGRADING.md.
+
+### Bug Fixes
+
+* A passkey assertion or registration relayed from another origin, or made without user
+  verification, is refused instead of accepted.
+
 ### Features
 
 * Own the WebAuthn ceremony vocabulary that apps already import (`RelyingParty`,

@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Milpa\Auth\Tests\WebAuthn;
 
 use Milpa\Auth\WebAuthn\CoseKey;
+use Milpa\Auth\WebAuthn\RelyingParty;
 use Milpa\Auth\WebAuthn\WebAuthnAssertionVerifier;
 use PHPUnit\Framework\TestCase;
 
@@ -35,11 +36,11 @@ final class CoseKeyTest extends TestCase
         // The PEM must actually verify a signature by the matching private key — proof it is the right key.
         $challenge = random_bytes(32);
         $clientData = (string) json_encode(['type' => 'webauthn.get', 'challenge' => rtrim(strtr(base64_encode($challenge), '+/', '-_'), '='), 'origin' => 'https://milpa.local']);
-        $authData = hash('sha256', 'milpa.local', true) . "\x01" . pack('N', 1);
+        $authData = hash('sha256', 'milpa.local', true) . "\x05" . pack('N', 1); // UP | UV
         $sig = '';
         openssl_sign($authData . hash('sha256', $clientData, true), $sig, $key, OPENSSL_ALGO_SHA256);
 
-        self::assertNotNull((new WebAuthnAssertionVerifier())->verify('c', $pem, $challenge, 'milpa.local', $clientData, $authData, $sig));
+        self::assertNotNull((new WebAuthnAssertionVerifier())->verify('c', $pem, $challenge, new RelyingParty('milpa.local', 'Milpa', ['https://milpa.local']), $clientData, $authData, $sig));
     }
 
     public function testANonEs256KeyIsRefused(): void
