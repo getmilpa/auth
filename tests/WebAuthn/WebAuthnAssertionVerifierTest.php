@@ -16,6 +16,8 @@ namespace Milpa\Auth\Tests\WebAuthn;
 
 use Milpa\Auth\WebAuthn\VerifiedPasskey;
 use Milpa\Auth\WebAuthn\WebAuthnAssertionVerifier;
+use Milpa\Auth\WebAuthn\RelyingParty;
+use Milpa\Auth\WebAuthn\UserVerificationRequirement;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -38,7 +40,7 @@ final class WebAuthnAssertionVerifierTest extends TestCase
             self::CRED_ID,
             $pub,
             $challenge,
-            self::RP_ID,
+            self::rp(),
             $clientData,
             $authData,
             $sig,
@@ -59,7 +61,7 @@ final class WebAuthnAssertionVerifierTest extends TestCase
             self::CRED_ID,
             $pub,
             random_bytes(32),
-            self::RP_ID,
+            self::rp(),
             $clientData,
             $authData,
             $sig,
@@ -79,7 +81,7 @@ final class WebAuthnAssertionVerifierTest extends TestCase
             self::CRED_ID,
             $pub,
             $challenge,
-            self::RP_ID,
+            self::rp(),
             $clientData,
             $authData,
             $sig,
@@ -90,13 +92,14 @@ final class WebAuthnAssertionVerifierTest extends TestCase
     {
         [$priv, $pub] = $this->keypair();
         $challenge = random_bytes(32);
-        [$clientData, $authData, $sig] = $this->assertion($priv, $challenge, 'evil.example');
+        // Our origin, so the refusal can only come from the rpId hash: the authenticator scoped it to another RP.
+        [$clientData, $authData, $sig] = $this->assertion($priv, $challenge, 'evil.example', origin: 'https://' . self::RP_ID);
 
         self::assertNull((new WebAuthnAssertionVerifier())->verify(
             self::CRED_ID,
             $pub,
             $challenge,
-            self::RP_ID,
+            self::rp(),
             $clientData,
             $authData,
             $sig,
@@ -113,7 +116,7 @@ final class WebAuthnAssertionVerifierTest extends TestCase
             self::CRED_ID,
             $pub,
             $challenge,
-            self::RP_ID,
+            self::rp(),
             $clientData,
             $authData,
             $sig,
@@ -131,7 +134,7 @@ final class WebAuthnAssertionVerifierTest extends TestCase
             self::CRED_ID,
             $otherPub,
             $challenge,
-            self::RP_ID,
+            self::rp(),
             $clientData,
             $authData,
             $sig,
@@ -148,7 +151,7 @@ final class WebAuthnAssertionVerifierTest extends TestCase
             self::CRED_ID,
             $pub,
             $challenge,
-            self::RP_ID,
+            self::rp(),
             $clientData,
             $authData,
             $sig,
@@ -166,7 +169,7 @@ final class WebAuthnAssertionVerifierTest extends TestCase
             self::CRED_ID,
             $pub,
             $challenge,
-            self::RP_ID,
+            self::rp(),
             'not-json',
             $authData,
             $sig,
@@ -184,7 +187,7 @@ final class WebAuthnAssertionVerifierTest extends TestCase
             self::CRED_ID,
             $pub,
             $challenge,
-            self::RP_ID,
+            self::rp(),
             $clientData,
             'too-short',
             $sig,
@@ -203,11 +206,95 @@ final class WebAuthnAssertionVerifierTest extends TestCase
             self::CRED_ID,
             $pub,
             $challenge,
-            self::RP_ID,
+            self::rp(),
             $clientData,
             $authData,
             $sig,
         ));
+    }
+
+    public function testAnAssertionFromAForeignOriginFails(): void
+    {
+        [$priv, $pub] = $this->keypair();
+        $challenge = random_bytes(32);
+        // A phishing page relaying the ceremony: right rpId hash, right challenge, a valid signature —
+        // but the browser wrote the page it actually ran on into clientDataJSON.
+        [$clientData, $authData, $sig] = $this->assertion($priv, $challenge, self::RP_ID, origin: 'https://evil.example');
+
+        self::assertNull((new WebAuthnAssertionVerifier())->verify(
+            self::CRED_ID,
+            $pub,
+            $challenge,
+            self::rp(),
+            $clientData,
+            $authData,
+            $sig,
+        ));
+    }
+
+    public function testAnAssertionWithoutUserVerificationFailsByDefault(): void
+    {
+        [$priv, $pub] = $this->keypair();
+        $challenge = random_bytes(32);
+        // UP without UV: someone touched the key, nobody proved to be its owner (no PIN, no biometric).
+        [$clientData, $authData, $sig] = $this->assertion($priv, $challenge, self::RP_ID, uvVerified: false);
+
+        self::assertNull((new WebAuthnAssertionVerifier())->verify(
+            self::CRED_ID,
+            $pub,
+            $challenge,
+            self::rp(),
+            $clientData,
+            $authData,
+            $sig,
+        ));
+    }
+
+    public function testAnAssertionWithoutAnOriginFails(): void
+    {
+        [$priv, $pub] = $this->keypair();
+        $challenge = random_bytes(32);
+        [, $authData] = $this->assertion($priv, $challenge, self::RP_ID);
+        $clientData = (string) json_encode([
+            'type' => 'webauthn.get',
+            'challenge' => rtrim(strtr(base64_encode($challenge), '+/', '-_'), '='),
+        ]);
+        $sig = '';
+        openssl_sign($authData . hash('sha256', $clientData, true), $sig, $priv, OPENSSL_ALGO_SHA256);
+
+        self::assertNull((new WebAuthnAssertionVerifier())->verify(self::CRED_ID, $pub, $challenge, self::rp(), $clientData, $authData, $sig));
+    }
+
+    public function testAnyAllowedOriginOfTheRelyingPartyVerifies(): void
+    {
+        [$priv, $pub] = $this->keypair();
+        $challenge = random_bytes(32);
+        [$clientData, $authData, $sig] = $this->assertion($priv, $challenge, self::RP_ID, origin: 'https://app.' . self::RP_ID);
+        $rp = new RelyingParty(self::RP_ID, 'Milpa', ['https://' . self::RP_ID, 'https://app.' . self::RP_ID]);
+
+        self::assertNotNull((new WebAuthnAssertionVerifier())->verify(self::CRED_ID, $pub, $challenge, $rp, $clientData, $authData, $sig));
+    }
+
+    public function testRelaxingUserVerificationIsExplicitAndAcceptsPresenceAlone(): void
+    {
+        [$priv, $pub] = $this->keypair();
+        $challenge = random_bytes(32);
+        [$clientData, $authData, $sig] = $this->assertion($priv, $challenge, self::RP_ID, uvVerified: false);
+
+        $relaxed = new WebAuthnAssertionVerifier(UserVerificationRequirement::Preferred);
+
+        self::assertNotNull($relaxed->verify(self::CRED_ID, $pub, $challenge, self::rp(), $clientData, $authData, $sig));
+    }
+
+    public function testRelaxingUserVerificationStillRequiresPresence(): void
+    {
+        [$priv, $pub] = $this->keypair();
+        $challenge = random_bytes(32);
+        [$clientData, $authData, $sig] = $this->assertion($priv, $challenge, self::RP_ID, upPresent: false, uvVerified: false);
+
+        $relaxed = new WebAuthnAssertionVerifier(UserVerificationRequirement::Discouraged);
+
+        self::assertNull($relaxed->verify(self::CRED_ID, $pub, $challenge, self::rp(), $clientData, $authData, $sig));
     }
 
     // --- the simulated authenticator ---
@@ -233,14 +320,16 @@ final class WebAuthnAssertionVerifierTest extends TestCase
         bool $upPresent = true,
         int $counter = 1,
         string $type = 'webauthn.get',
+        ?string $origin = null,
+        bool $uvVerified = true,
     ): array {
         $clientData = (string) json_encode([
             'type' => $type,
             'challenge' => rtrim(strtr(base64_encode($challenge), '+/', '-_'), '='),
-            'origin' => 'https://' . $rpId,
+            'origin' => $origin ?? 'https://' . $rpId,
         ]);
 
-        $flags = $upPresent ? "\x01" : "\x00";
+        $flags = \chr(($upPresent ? 0x01 : 0x00) | ($uvVerified ? 0x04 : 0x00));
         $authData = hash('sha256', $rpId, true) . $flags . pack('N', $counter);
 
         $signedData = $authData . hash('sha256', $clientData, true);
@@ -248,5 +337,11 @@ final class WebAuthnAssertionVerifierTest extends TestCase
         openssl_sign($signedData, $sig, $priv, OPENSSL_ALGO_SHA256);
 
         return [$clientData, $authData, $sig];
+    }
+
+    /** The relying party this suite's simulated authenticator answers for. */
+    private static function rp(): RelyingParty
+    {
+        return new RelyingParty(self::RP_ID, 'Milpa', ['https://' . self::RP_ID]);
     }
 }
