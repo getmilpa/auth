@@ -60,7 +60,7 @@ final readonly class Permission
         if ($colon === false || $colon === 0 || $colon === \strlen($key) - 1) {
             throw new \InvalidArgumentException(
                 "[MILPA_PERMISSION_MALFORMED] '{$key}' is not a valid permission key. Expected "
-                . "'{namespace}.{resource}:{action}' (namespace optional), e.g. 'crm.contact:create' or 'posts:read'."
+                . "'{namespace}.{resource}:{action}', or '{resource}:{action}' without a namespace."
             );
         }
         $action = substr($key, $colon + 1);
