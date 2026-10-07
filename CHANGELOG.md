@@ -25,6 +25,13 @@
   `Milpa\Auth\WebAuthn\*`. The lbuchs adapter and in-memory stores stay in
   `milpa/auth-webauthn` 0.2.
 
+## [0.11.1](https://github.com/getmilpa/auth/compare/v0.11.0...v0.11.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* a malformed permission key is answered with the form of a key, not with sample keys ([#44](https://github.com/getmilpa/auth/issues/44)) ([718bc1a](https://github.com/getmilpa/auth/commit/718bc1a1c702717a105ca0e417c0a0c135578b97))
+
 ## [0.11.0](https://github.com/getmilpa/auth/compare/v0.10.1...v0.11.0) (2026-09-29)
 
 
