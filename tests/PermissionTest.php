@@ -66,6 +66,26 @@ final class PermissionTest extends TestCase
         Permission::parse($key);
     }
 
+    /**
+     * AN EXAMPLE IS NOT THE EXAM (greenhouse decisions/0594 §5, question 7). A refusal is read by whoever
+     * sent the key, whatever they are building. It says what a key looks like by its FORM — its segments,
+     * with and without a namespace — and shows no resource or action of its own choosing.
+     */
+    public function testAMalformedKeyIsAnsweredWithTheFormOfAKey(): void
+    {
+        try {
+            Permission::parse('nocolon');
+            self::fail('a key with no action is malformed');
+        } catch (\InvalidArgumentException $e) {
+            preg_match_all("/'([^']*)'/", $e->getMessage(), $quoted);
+
+            self::assertSame(['nocolon', '{namespace}.{resource}:{action}', '{resource}:{action}'], $quoted[1], 'the key it was given, then the two forms a key takes');
+            foreach (\array_slice($quoted[1], 1) as $form) {
+                self::assertSame('', preg_replace('/\{[a-z]+\}|[.:]/', '', $form), "«{$form}» is made of segments and their separators, nothing else");
+            }
+        }
+    }
+
     public function testEqualsByKey(): void
     {
         self::assertTrue(Permission::of('contact', 'read', 'crm')->equals(Permission::parse('crm.contact:read')));
