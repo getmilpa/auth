@@ -24,6 +24,17 @@ use Milpa\Auth\Contracts\SessionStore;
  * HTTP login spans separate PHP processes, and needs its sessions to outlive the request that made them.
  * This holds the same fail-closed contract — an expired or revoked record reads as absent, never as a
  * live actor — over a JSON file with locked writes, mirroring the framework's other file stores.
+ *
+ * THE FILE KEYS A SESSION BY A DIGEST OF ITS ID, NEVER THE ID ITSELF. The session id is a bearer
+ * credential: it is exactly the value the browser sends back in the session cookie, and presenting it
+ * authenticates. So this store never writes it down — it keys each record by `hash('sha256', $id)` and
+ * {@see read()}/{@see destroy()} hash the id the caller presents before looking it up. A read of the
+ * file on disk then yields only digests, which open nothing: this is what the sibling stores already do
+ * (an API token and an invitation are kept as their sha256). A record carries no id field of its own;
+ * {@see read()} hydrates it with the raw id the caller passed, so the cookie keeps carrying the id and
+ * nothing downstream changes. One consequence, by design: a sessions file written by an older version —
+ * keyed by the raw id — is no longer found by its digest, so sessions open before an upgrade stop
+ * resolving and their owners sign in again (a one-time re-authentication, not a loss of any grant).
  */
 final class FileSessionStore implements SessionStore
 {
@@ -39,7 +50,7 @@ final class FileSessionStore implements SessionStore
     /** The live session under this id, or null when none is stored, or it is expired or revoked (fail-closed). */
     public function read(string $sessionId): ?SessionRecord
     {
-        $entry = $this->all()[$sessionId] ?? null;
+        $entry = $this->all()[self::key($sessionId)] ?? null;
         if (!\is_array($entry)) {
             return null;
         }
@@ -49,11 +60,11 @@ final class FileSessionStore implements SessionStore
         return $session !== null && $session->isValid(($this->clock)()) ? $session : null;
     }
 
-    /** Persist a session on disk, keyed by its id, under an exclusive lock. */
+    /** Persist a session on disk, keyed by a digest of its id, under an exclusive lock. */
     public function write(SessionRecord $session): void
     {
         $this->mutate(static function (array $map) use ($session): array {
-            $map[$session->id] = [
+            $map[self::key($session->id)] = [
                 'actorId' => $session->actorId,
                 'actorType' => $session->actorType->value,
                 'createdAt' => $session->createdAt->format(\DateTimeInterface::ATOM),
@@ -71,10 +82,19 @@ final class FileSessionStore implements SessionStore
     public function destroy(string $sessionId): void
     {
         $this->mutate(static function (array $map) use ($sessionId): array {
-            unset($map[$sessionId]);
+            unset($map[self::key($sessionId)]);
 
             return $map;
         });
+    }
+
+    /**
+     * The on-disk key for a session id: its sha256 digest, so a read of the file never yields a usable
+     * cookie. The id itself travels only in the cookie; the store keeps the digest the cookie hashes to.
+     */
+    private static function key(string $sessionId): string
+    {
+        return hash('sha256', $sessionId);
     }
 
     /**
