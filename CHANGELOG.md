@@ -25,6 +25,13 @@
   `Milpa\Auth\WebAuthn\*`. The lbuchs adapter and in-memory stores stay in
   `milpa/auth-webauthn` 0.2.
 
+## [0.11.2](https://github.com/getmilpa/auth/compare/v0.11.1...v0.11.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* the session store keeps a digest of a session id, not the id itself ([#46](https://github.com/getmilpa/auth/issues/46)) ([a19183d](https://github.com/getmilpa/auth/commit/a19183db1c363741a0d926798f63bb741099c961))
+
 ## [0.11.1](https://github.com/getmilpa/auth/compare/v0.11.0...v0.11.1) (2026-10-07)
 
 
